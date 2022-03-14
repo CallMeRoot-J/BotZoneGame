@@ -1,0 +1,677 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>Ataxx</title>
+    <meta charset="utf-8" />
+    <style>
+        body {
+            font-family: 'Microsoft YaHei', SimHei, 'Courier New', Arial !important;
+            background: radial-gradient(ellipse farthest-corner, white, gray);
+            height: 480px;
+            overflow: hidden;
+        }
+
+        #gameField {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            -moz-transform: translate(-50%, -50%);
+            -ms-transform: translate(-50%, -50%);
+            -o-transform: translate(-50%, -50%);
+            -webkit-transform: translate(-50%, -50%);
+            transform: translate(-50%, -50%);
+            font-size: 0;
+            margin-top: 20px;
+        }
+
+        figure {
+            margin: 0;
+        }
+
+        .tile {
+            box-shadow: gray 0 0 5px;
+            background-color: white;
+            display: inline-block;
+            -moz-transition: transform cubic-bezier(.17, .67, .62, 1.32) 0.2s, box-shadow ease 0.2s;
+            -o-transition: transform cubic-bezier(.17, .67, .62, 1.32) 0.2s, box-shadow ease 0.2s;
+            -webkit-transition: transform cubic-bezier(.17, .67, .62, 1.32) 0.2s, box-shadow ease 0.2s;
+            transition: transform cubic-bezier(.17, .67, .62, 1.32) 0.2s, box-shadow ease 0.2s;
+        }
+
+        .tile.has-piece {
+            -moz-transform: scale(0.95);
+            -ms-transform: scale(0.95);
+            -o-transform: scale(0.95);
+            -webkit-transform: scale(0.95);
+            transform: scale(0.95);
+        }
+
+        .tile.move:hover {
+            -moz-transform: scale(1.05);
+            -ms-transform: scale(1.05);
+            -o-transform: scale(1.05);
+            -webkit-transform: scale(1.05);
+            transform: scale(1.05);
+        }
+
+        .tile.move {
+            box-shadow: yellow 1px 1px 10px;
+            background-color: #ffffde;
+            cursor: pointer;
+        }
+
+        .piece {
+            position: absolute;
+            z-index: 1;
+            -moz-perspective: 600px;
+            -ms-perspective: 600px;
+            -webkit-perspective: 600px;
+            perspective: 600px;
+            display: none;
+        }
+
+        .piece.exist {
+            display: inherit;
+        }
+
+        .piece.active {
+            z-index: 2;
+        }
+
+        .piece.exist > div {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            border-radius: 50%;
+            box-sizing: border-box;
+            border: 1px solid black;
+            z-index: 1;
+            -moz-transition: transform ease 0.3s, background-color linear 0.3s;
+            -o-transition: transform ease 0.3s, background-color linear 0.3s;
+            -webkit-transition: transform ease 0.3s, background-color linear 0.3s;
+            transition: transform ease 0.3s, background-color linear 0.3s;
+            -moz-animation: piece-show 0.2s cubic-bezier(.17, .67, .62, 1.32);
+            -o-animation: piece-show 0.2s cubic-bezier(.17, .67, .62, 1.32);
+            -webkit-animation: piece-show 0.2s cubic-bezier(.17, .67, .62, 1.32);
+            animation: piece-show 0.2s cubic-bezier(.17, .67, .62, 1.32);
+        }
+
+        .piece.active > div {
+            -moz-transform: translate3d(-10%, -10%, 15px) rotateX(-5deg) rotateY(-5deg) scale(1.1);
+            -ms-transform: translate3d(-10%, -10%, 15px) rotateX(-5deg) rotateY(-5deg) scale(1.1);
+            -o-transform: translate3d(-10%, -10%, 15px) rotateX(-5deg) rotateY(-5deg) scale(1.1);
+            -webkit-transform: translate3d(-10%, -10%, 15px) rotateX(-5deg) rotateY(-5deg) scale(1.1);
+            transform: translate3d(-10%, -10%, 15px) rotateX(-5deg) rotateY(-5deg) scale(1.1);
+        }
+
+        .piece.exist:before {
+            content: "";
+            position: absolute;
+            top: -4px;
+            left: -4px;
+            right: -6px;
+            bottom: -6px;
+            background: radial-gradient(closest-side, gray 50%, transparent);
+            -moz-animation: piece-show 0.2s cubic-bezier(.17, .67, .62, 1.32);
+            -o-animation: piece-show 0.2s cubic-bezier(.17, .67, .62, 1.32);
+            -webkit-animation: piece-show 0.2s cubic-bezier(.17, .67, .62, 1.32);
+            animation: piece-show 0.2s cubic-bezier(.17, .67, .62, 1.32);
+        }
+
+        .black-player .piece.black > div, .white-player .piece.white > div, .blue-player .piece.blue > div {
+            cursor: pointer;
+        }
+
+        .piece.active > div, .black-player .piece.black > div:hover, .white-player .piece.white > div:hover, .blue-player .piece.blue > div:hover {
+            box-shadow: #17c717 0 0 25px;
+        }
+
+        .piece.black > div {
+            background-color: black;
+        }
+
+        .piece.white > div {
+            background-color: white;
+        }
+
+        .piece.blue > div {
+            background-color: blue;
+        }
+
+        @-moz-keyframes piece-show {
+            from {
+                -moz-transform: scale(0);
+                -ms-transform: scale(0);
+                -o-transform: scale(0);
+                -webkit-transform: scale(0);
+                transform: scale(0);
+            }
+
+            to {
+                -moz-transform: scale(1);
+                -ms-transform: scale(1);
+                -o-transform: scale(1);
+                -webkit-transform: scale(1);
+                transform: scale(1);
+            }
+        }
+
+        @-webkit-keyframes piece-show {
+            from {
+                -moz-transform: scale(0);
+                -ms-transform: scale(0);
+                -o-transform: scale(0);
+                -webkit-transform: scale(0);
+                transform: scale(0);
+            }
+
+            to {
+                -moz-transform: scale(1);
+                -ms-transform: scale(1);
+                -o-transform: scale(1);
+                -webkit-transform: scale(1);
+                transform: scale(1);
+            }
+        }
+
+        @keyframes piece-show {
+            from {
+                -moz-transform: scale(0);
+                -ms-transform: scale(0);
+                -o-transform: scale(0);
+                -webkit-transform: scale(0);
+                transform: scale(0);
+            }
+
+            to {
+                -moz-transform: scale(1);
+                -ms-transform: scale(1);
+                -o-transform: scale(1);
+                -webkit-transform: scale(1);
+                transform: scale(1);
+            }
+        }
+
+        .player-container {
+            position: absolute;
+            top: 10px;
+            height: 40px;
+            left: 0;
+            right: 0;
+            text-align: center;
+        }
+
+        .player {
+            display: inline-block;
+            position: relative;
+            border-width: 3px;
+            border-style: solid;
+            height: 40px;
+            -moz-box-sizing: border-box;
+            -webkit-box-sizing: border-box;
+            box-sizing: border-box;
+            font-size: 20px;
+            padding-left: 25px;
+            padding-right: 25px;
+        }
+
+        .player.black {
+            -moz-border-image: linear-gradient(to right, black, transparent) 100% 1;
+            -o-border-image: linear-gradient(to right, black, transparent) 100% 1;
+            -webkit-border-image: linear-gradient(to right, black, transparent) 100% 1;
+            border-image: linear-gradient(to right, black, transparent) 100% 1;
+        }
+
+        .player.white {
+            -moz-border-image: linear-gradient(to left, white, transparent) 100% 1;
+            -o-border-image: linear-gradient(to left, white, transparent) 100% 1;
+            -webkit-border-image: linear-gradient(to left, white, transparent) 100% 1;
+            border-image: linear-gradient(to left, white, transparent) 100% 1;
+        }
+
+        .player.blue {
+            -moz-border-image: linear-gradient(to left, blue, transparent) 100% 1;
+            -o-border-image: linear-gradient(to left, blue, transparent) 100% 1;
+            -webkit-border-image: linear-gradient(to left, blue, transparent) 100% 1;
+            border-image: linear-gradient(to left, blue, transparent) 100% 1;
+        }
+
+        .player .score {
+            display: inline-block;
+            position: absolute;
+            height: 40px;
+            width: 40px;
+            top: -3px;
+            border-radius: 50%;
+            font-weight: bold;
+            text-align: center;
+            line-height: 40px;
+        }
+
+        .player.black .score {
+            background-color: black;
+            color: white;
+            left: -20px;
+        }
+
+        .player.white .score {
+            background-color: white;
+            color: black;
+            right: -20px;
+        }
+
+
+
+        .player .name {
+            line-height: 34px;
+        }
+
+        .result-box {
+            position: absolute;
+            top: 50%;
+            left: 0;
+            right: 0;
+            display: none;
+            -moz-transform: translateY(-50%);
+            -ms-transform: translateY(-50%);
+            -o-transform: translateY(-50%);
+            -webkit-transform: translateY(-50%);
+            transform: translateY(-50%);
+            transform-origin: center center;
+            background-color: rgba(0, 0, 0, 0.5);
+            color: white;
+            text-align: center;
+            padding: 20px;
+            font-size: 40px;
+            font-weight: bold;
+        }
+
+        .result-box.active {
+            display: block;
+            -moz-animation: result-box-show 0.5s ease;
+            -o-animation: result-box-show 0.5s ease;
+            -webkit-animation: result-box-show 0.5s ease;
+            animation: result-box-show 0.5s ease;
+        }
+
+        .result-box p {
+            margin: 10px;
+        }
+
+        .skip-box {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            -moz-animation: skip-box-show 0.3s cubic-bezier(.17, .67, .62, 1.32);
+            -o-animation: skip-box-show 0.3s cubic-bezier(.17, .67, .62, 1.32);
+            -webkit-animation: skip-box-show 0.3s cubic-bezier(.17, .67, .62, 1.32);
+            animation: skip-box-show 0.3s cubic-bezier(.17, .67, .62, 1.32);
+            border-radius: 100vw;
+            background-color: rgba(0, 0, 0, 0.5);
+            color: white;
+            font-weight: bold;
+            font-size: 20px;
+            text-align: center;
+            padding: 10px;
+            -moz-transform: translate(-50%, -50%);
+            -ms-transform: translate(-50%, -50%);
+            -o-transform: translate(-50%, -50%);
+            -webkit-transform: translate(-50%, -50%);
+            transform: translate(-50%, -50%);
+        }
+
+        @-webkit-keyframes skip-box-show {
+            from {
+                -moz-transform: translate(-50%, -50%) scale(0);
+                -ms-transform: translate(-50%, -50%) scale(0);
+                -o-transform: translate(-50%, -50%) scale(0);
+                -webkit-transform: translate(-50%, -50%) scale(0);
+                transform: translate(-50%, -50%) scale(0);
+            }
+
+            to {
+                -moz-transform: translate(-50%, -50%) scale(1);
+                -ms-transform: translate(-50%, -50%) scale(1);
+                -o-transform: translate(-50%, -50%) scale(1);
+                -webkit-transform: translate(-50%, -50%) scale(1);
+                transform: translate(-50%, -50%) scale(1);
+            }
+        }
+
+        @-moz-keyframes skip-box-show {
+            from {
+                -moz-transform: translate(-50%, -50%) scale(0);
+                -ms-transform: translate(-50%, -50%) scale(0);
+                -o-transform: translate(-50%, -50%) scale(0);
+                -webkit-transform: translate(-50%, -50%) scale(0);
+                transform: translate(-50%, -50%) scale(0);
+            }
+
+            to {
+                -moz-transform: translate(-50%, -50%) scale(1);
+                -ms-transform: translate(-50%, -50%) scale(1);
+                -o-transform: translate(-50%, -50%) scale(1);
+                -webkit-transform: translate(-50%, -50%) scale(1);
+                transform: translate(-50%, -50%) scale(1);
+            }
+        }
+
+        @keyframes skip-box-show {
+            from {
+                -moz-transform: translate(-50%, -50%) scale(0);
+                -ms-transform: translate(-50%, -50%) scale(0);
+                -o-transform: translate(-50%, -50%) scale(0);
+                -webkit-transform: translate(-50%, -50%) scale(0);
+                transform: translate(-50%, -50%) scale(0);
+            }
+
+            to {
+                -moz-transform: translate(-50%, -50%) scale(1);
+                -ms-transform: translate(-50%, -50%) scale(1);
+                -o-transform: translate(-50%, -50%) scale(1);
+                -webkit-transform: translate(-50%, -50%) scale(1);
+                transform: translate(-50%, -50%) scale(1);
+            }
+        }
+
+        @keyframes result-box-show {
+            from {
+                -moz-transform: translateY(-50%) scale(3);
+                -ms-transform: translateY(-50%) scale(3);
+                -o-transform: translateY(-50%) scale(3);
+                -webkit-transform: translateY(-50%) scale(3);
+                transform: translateY(-50%) scale(3);
+                opacity: 0;
+            }
+
+            to {
+                -moz-transform: translateY(-50%) scale(1);
+                -ms-transform: translateY(-50%) scale(1);
+                -o-transform: translateY(-50%) scale(1);
+                -webkit-transform: translateY(-50%) scale(1);
+                transform: translateY(-50%) scale(1);
+                opacity: 1;
+            }
+        }
+
+        @-moz-keyframes result-box-show {
+            from {
+                -moz-transform: translateY(-50%) scale(3);
+                -ms-transform: translateY(-50%) scale(3);
+                -o-transform: translateY(-50%) scale(3);
+                -webkit-transform: translateY(-50%) scale(3);
+                transform: translateY(-50%) scale(3);
+                opacity: 0;
+            }
+
+            to {
+                -moz-transform: translateY(-50%) scale(1);
+                -ms-transform: translateY(-50%) scale(1);
+                -o-transform: translateY(-50%) scale(1);
+                -webkit-transform: translateY(-50%) scale(1);
+                transform: translateY(-50%) scale(1);
+                opacity: 1;
+            }
+        }
+
+        @-webkit-keyframes result-box-show {
+            from {
+                -moz-transform: translateY(-50%) scale(3);
+                -ms-transform: translateY(-50%) scale(3);
+                -o-transform: translateY(-50%) scale(3);
+                -webkit-transform: translateY(-50%) scale(3);
+                transform: translateY(-50%) scale(3);
+                opacity: 0;
+            }
+
+            to {
+                -moz-transform: translateY(-50%) scale(1);
+                -ms-transform: translateY(-50%) scale(1);
+                -o-transform: translateY(-50%) scale(1);
+                -webkit-transform: translateY(-50%) scale(1);
+                transform: translateY(-50%) scale(1);
+                opacity: 1;
+            }
+        }
+    </style>
+    <style id="extended-style"></style>
+    <script src="../javascripts/jquery-2.1.0.min.js"></script>
+    <script src="player_api.js?v2!"></script>
+    <script>
+        GRIDSIZE = 8;
+        var FIELD_WIDTH = GRIDSIZE, FIELD_HEIGHT = GRIDSIZE;
+        var myColor, currColor = -1;
+        var gridSize, gapSize;
+        var $controls = {
+            gameField: null,
+            lblBlackName: null,
+            lblWhiteName: null,
+            result: null,
+            winner: null,
+            resultBox: null
+        }, $tiles = [], $pieces = [];
+        var delta = [
+            [1, 1], [0, 1], [-1, 1], [-1, 0],
+            [-1, -1], [0, -1], [1, -1], [1, 0]
+        ];
+        var blackdir = [[1,-1],[1,0],[1,1]];
+        var whitedir = [[-1,-1],[-1,0],[-1,1]];
+
+
+        $(document).ready(function () {
+
+            for (var id in $controls)
+                $controls[id] = $("#" + id);
+
+            infoProvider.v2.setMinSize(0, 500);
+            gridSize = Math.min((window.innerHeight - 40) / FIELD_HEIGHT, window.innerWidth / FIELD_WIDTH) * 0.8;
+            gapSize = gridSize / (GRIDSIZE + 1);
+
+            $controls.gameField.css({
+                height: gridSize * FIELD_HEIGHT + gapSize * (FIELD_HEIGHT + 1),
+                width: gridSize * FIELD_WIDTH + gapSize * (FIELD_WIDTH + 1)
+            });
+
+            $("#extended-style").html(
+                ".tile { height: " + gridSize + "px; width: " + gridSize + "px; margin: " + gapSize + "px 0 0 " + gapSize + "px; }" +
+                ".piece { height: " + gridSize * 0.8 + "px; width: " + gridSize * 0.8 + "px; left: " +
+                (gridSize * 0.1 + gapSize) + "px; top: " + (gridSize * 0.1 + gapSize) + "px; }"
+            );
+
+            for (var i = 0; i < FIELD_HEIGHT; i++) {
+                $tiles[i] = [];
+                $pieces[i] = [];
+                for (var j = 0; j < FIELD_WIDTH; j++)
+                    $controls.gameField.append(
+                        $tiles[i][j] = $('<figure class="tile"></figure>').data("pos", { x: j, y: i })
+                    );
+            }
+
+            function XYPack(x, y, extra) {
+                extra = extra || {};
+                extra.x = x * (gridSize + gapSize);
+                extra.y = y * (gridSize + gapSize);
+                return extra;
+            }
+
+            function Valid(x, y) {
+                return x >= 0 && x < FIELD_WIDTH && y >= 0 && y < FIELD_HEIGHT;
+            }
+
+            function GeneratePiece(x, y, color) {
+                var $obj = $('<figure class="piece exist"><div></div></figure>');
+                if (color == 1)
+                    $obj.addClass("black").data("color", 1);
+                else if (color == -1)
+                    $obj.addClass("white").data("color", -1);
+                else
+                    $obj.addClass("blue").data("color", 2);
+                $obj.data("pos", { x: x, y: y }).css("transform",
+                    "translate(" + x * (gridSize + gapSize) + "px, " + y * (gridSize + gapSize) + "px)");
+                $tiles[y][x].addClass("has-piece");
+                $controls.gameField.append($obj);
+                $pieces[y][x] = $obj;
+            }
+            for(var num=0; num<GRIDSIZE;num++){
+                GeneratePiece(num, 0, 1);
+                GeneratePiece(num, 1, 1);
+                GeneratePiece(num, GRIDSIZE-1, -1);
+                GeneratePiece(num, GRIDSIZE-2, -1);
+            }
+
+            $(document).on("click", ".black-player .piece.black, .black-player .piece.white, .white-player .piece.black, .white-player .piece.white", function (e) {
+                var $this = $(this);
+                var pos = $this.data("pos");
+                console.log("click at " + pos.y + "," + pos.x);
+                if ($this.hasClass("active")) {
+                    // 取消
+                    $(".tile").removeClass("move");
+                    $this.removeClass("active");
+                } else if ($tiles[pos.y][pos.x].hasClass("move")) {
+                    // 吃子
+                    var orig = $(".piece.active").data("pos");
+                    var move = pos;
+                    $(".tile").removeClass("move");
+                    var infon = { x0: orig.y, y0: orig.x, x1: move.y, y1: move.x};
+                    console.log("notify: " + infon.x0 + "," + infon.y0 + "," + infon.x1 + "," + infon.y1);
+                    infoProvider.notifyPlayerMove({ x0: orig.y, y0: orig.x, x1: move.y, y1: move.x});
+                    $controls.gameField.removeClass("black-player white-player");
+                    $(".piece.active").removeClass("active");
+                } else {
+                    // 点了新的点
+                    if (($pieces[pos.y][pos.x].hasClass("black") && currColor === -1)
+                        || ($pieces[pos.y][pos.x].hasClass("white") && currColor === 1)) {
+                        // 选择起点子时不能选择对方棋子
+                        return;
+                    }
+                    $(".tile").removeClass("move");
+                    $(".piece.active").removeClass("active");
+                    $this.addClass("active");
+                    for (dir = 0; dir < 3; dir++) {
+                        var x = -1, y = -1;
+                        if (currColor === 1) {
+                            x = pos.x + blackdir[dir][1]; y = pos.y + blackdir[dir][0];
+                        } else {
+                            x = pos.x + whitedir[dir][1]; y = pos.y + whitedir[dir][0];
+                        }
+                        if (Valid(x, y) && ((dir !== 1) || (dir === 1 && !$pieces[y][x]))) {
+                            $tiles[y][x].addClass("move");
+                        }
+                    }
+                }
+            });
+            $(document).on("click", ".tile", function (e) {
+                var $this = $(this);
+                var pos = $this.data("pos");
+                console.log("click at " + pos.y + "," + pos.x);
+                if ($this.hasClass("move")) {
+                    var orig = $(".piece.active").data("pos");
+                    var move = $this.data("pos");
+                    $(".tile").removeClass("move");
+                    var infon = { x0: orig.y, y0: orig.x, x1: move.y, y1: move.x};
+                    console.log("notify: " + infon.x0 + "," + infon.y0 + "," + infon.x1 + "," + infon.y1);
+                    infoProvider.notifyPlayerMove({ x0: orig.y, y0: orig.x, x1: move.y, y1: move.x});
+                    $controls.gameField.removeClass("black-player white-player");
+                    $(".piece.active").removeClass("active");
+                } else {
+                    $(".tile").removeClass("move");
+                    $(".piece.active").removeClass("active");
+                }
+            });
+
+            var ERR2Chinese = {
+                "INVALID_INPUT_VERDICT_RE": "程序崩溃",
+                "INVALID_INPUT_VERDICT_MLE": "程序内存爆炸",
+                "INVALID_INPUT_VERDICT_TLE": "决策超时",
+                "INVALID_INPUT_VERDICT_NJ": "程序输出不是JSON",
+                "INVALID_INPUT_VERDICT_OLE": "程序输出爆炸",
+                "INVALID_INPUT_VERDICT_OK": "程序输出格式错误",
+                "INVALIDMOVE": "非法棋步",
+                "HE_THOUGHT_THAT_HE_COULDNOT_MOVE_BUT_IN_FACT_HE_CAN": "错误跳过回合",
+                "CIRCULAR_MOVE": "试图复现第%errorturn%回合局面"
+            };
+
+            infoProvider.v2.setDisplayCallback(function (log) {
+                $controls.gameField.removeClass("black-player white-player");
+                if (!log)
+                    return;
+                var tl = new infoProvider.v2.TimelineMax();
+                if ("x0" in log) {
+                    var x0 = log.y0, x1 = log.y1, y0 = log.x0, y1 = log.x1;
+                    if (x0 == -1)
+                        return;
+                    if (!Valid(x0, y0) || !Valid(x1, y1))
+                        return;
+                    var $piece = $pieces[y0][x0];
+                    if (!$piece)
+                        return;
+                    var color = $piece.data("color");
+                    if (color != currColor)
+                        return;
+                    $pieces[y0][x0] = null;
+                    tl.set($tiles[y0][x0], { immediateRender: false, className: "-=has-piece" });
+                    $obj1 = $pieces[y1][x1];
+                    $piece.data("pos", { x: x1, y: y1 });
+                    $pieces[y1][x1] = $piece;
+                    tl.set($piece, { immediateRender: false, className: "+=active" });
+                    tl.to($piece, 0.3, XYPack(x1, y1));
+                    currColor *= -1;
+                    tl.set($tiles[y1][x1], { immediateRender: false, className: "+=has-piece" });
+                    if ($obj1) {
+                        tl.set($obj1, {immediateRender: false, className: "-=piece"});
+                    }
+                    tl.set($piece, { immediateRender: false, className: "-=active" });
+                    tl.addLabel("insertPoint", 1);
+                }
+                if ("winner" in log) {
+                    if (log.err)
+                        $controls.result.text((ERR2Chinese[log.err] || log.err).replace(/%([^%]+)%/g, function (full, key) {
+                            return log[key];
+                        }));
+                    else
+                        $controls.result.text("游戏结束");
+                    if (log.winner == 0)
+                        $controls.winner.text("黑方胜利");
+                    else if (log.winner == 1)
+                        $controls.winner.text("白方胜利");
+                    else
+                        $controls.winner.text("双方平局");
+                    tl.set($controls.resultBox, { immediateRender: false, className: "+=active" });
+                }
+                return tl;
+            });
+
+            infoProvider.v2.setRequestCallback(function (log) {
+                if (!myColor)
+                    myColor = infoProvider.getPlayerID() == 0 ? 1 : -1;
+                // 这里默认无合法走法时裁判会提前结束比赛 不会再发request了
+                $controls.gameField.addClass(myColor == 1 ? "black-player" : "white-player");
+            });
+
+            var names = infoProvider.getPlayerNames();
+            $controls.lblBlackName.text(names[0].name);
+            $controls.lblWhiteName.text(names[1].name);
+
+            infoProvider.v2.notifyInitComplete();
+        });
+    </script>
+</head>
+<body>
+<div class="player-container">
+    <figure class="player black">
+        <span class="name" id="lblBlackName"></span>
+    </figure>
+    <figure class="player white">
+        <span class="name" id="lblWhiteName"></span>
+    </figure>
+</div>
+<section id="gameField"></section>
+<div class="result-box" id="resultBox">
+    <p id="result">游戏结束</p>
+    <p id="winner">双方平局</p>
+</div>
+</body>
+</html>

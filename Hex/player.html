@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Hex Player</title>
+    <style>
+        body {
+            font-family: 'Microsoft YaHei', SimHei, 'Courier New', Arial,serif !important;
+            background: radial-gradient(ellipse farthest-corner, white, gray);
+            height: 480px;
+            overflow: hidden;
+        }
+        #gameField {
+            /*content: url("Hex/img/hex_bg.png");*/
+            background-image: url("Hex/img/hex_bg.png");
+            background-repeat: no-repeat;
+            width: 327px;
+            height: 524px;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            -moz-transform: translate(-50%, -50%);
+            -ms-transform: translate(-50%, -50%);
+            -o-transform: translate(-50%, -50%);
+            -webkit-transform: translate(-50%, -50%);
+            transform: translate(-50%, -50%);
+            font-size: 0;
+            margin-top: 20px;
+            text-align: center;
+        }
+        .tile {
+            position: relative;
+            content: url("Hex/img/hex_t.gif");
+        }
+        .tile.blue {
+            position: relative;
+            content: url("Hex/img/hex_b.gif");
+        }
+        .tile.red {
+            position: relative;
+            content: url("Hex/img/hex_r.gif");
+        }
+
+        .tile.yellow {
+            position: relative;
+            content: url("Hex/img/hex_y.png");
+        }
+
+        .highlight-red {
+            box-shadow: inset 0 0 3px 3px yellow;
+        }
+        .highlight-blue {
+            box-shadow: inset 0 0 3px 3px blue;
+        }
+        .highlight {
+            box-shadow: inset 0 0 3px 3px white;
+        }
+        @-moz-keyframes piece-show {
+            from {
+                -moz-transform: scale(0);
+                -ms-transform: scale(0);
+                -o-transform: scale(0);
+                -webkit-transform: scale(0);
+                transform: scale(0);
+            }
+
+            to {
+                -moz-transform: scale(1);
+                -ms-transform: scale(1);
+                -o-transform: scale(1);
+                -webkit-transform: scale(1);
+                transform: scale(1);
+            }
+        }
+
+        @-webkit-keyframes piece-show {
+            from {
+                -moz-transform: scale(0);
+                -ms-transform: scale(0);
+                -o-transform: scale(0);
+                -webkit-transform: scale(0);
+                transform: scale(0);
+            }
+
+            to {
+                -moz-transform: scale(1);
+                -ms-transform: scale(1);
+                -o-transform: scale(1);
+                -webkit-transform: scale(1);
+                transform: scale(1);
+            }
+        }
+
+        @keyframes piece-show {
+            from {
+                -moz-transform: scale(0);
+                -ms-transform: scale(0);
+                -o-transform: scale(0);
+                -webkit-transform: scale(0);
+                transform: scale(0);
+            }
+
+            to {
+                -moz-transform: scale(1);
+                -ms-transform: scale(1);
+                -o-transform: scale(1);
+                -webkit-transform: scale(1);
+                transform: scale(1);
+            }
+        }
+
+        .player-container {
+            position: absolute;
+            top: 10px;
+            height: 40px;
+            left: 0;
+            right: 0;
+            text-align: center;
+        }
+
+        .player {
+            display: inline-block;
+            position: relative;
+            border-width: 3px;
+            border-style: solid;
+            height: 40px;
+            -moz-box-sizing: border-box;
+            -webkit-box-sizing: border-box;
+            box-sizing: border-box;
+            font-size: 20px;
+            padding-left: 25px;
+            padding-right: 25px;
+        }
+
+        .player.red {
+            -moz-border-image: linear-gradient(to right, red, transparent) 100% 1;
+            -o-border-image: linear-gradient(to right, red, transparent) 100% 1;
+            -webkit-border-image: linear-gradient(to right, red, transparent) 100% 1;
+            border-image: linear-gradient(to right, red, transparent) 100% 1;
+        }
+
+        .player.white {
+            -moz-border-image: linear-gradient(to left, white, transparent) 100% 1;
+            -o-border-image: linear-gradient(to left, white, transparent) 100% 1;
+            -webkit-border-image: linear-gradient(to left, white, transparent) 100% 1;
+            border-image: linear-gradient(to left, white, transparent) 100% 1;
+        }
+
+        .player.blue {
+            -moz-border-image: linear-gradient(to left, blue, transparent) 100% 1;
+            -o-border-image: linear-gradient(to left, blue, transparent) 100% 1;
+            -webkit-border-image: linear-gradient(to left, blue, transparent) 100% 1;
+            border-image: linear-gradient(to left, blue, transparent) 100% 1;
+        }
+
+        .player .score {
+            display: inline-block;
+            position: absolute;
+            height: 40px;
+            width: 40px;
+            top: -3px;
+            border-radius: 50%;
+            font-weight: bold;
+            text-align: center;
+            line-height: 40px;
+        }
+
+        .player.black .score {
+            background-color: black;
+            color: white;
+            left: -20px;
+        }
+
+        .player.white .score {
+            background-color: white;
+            color: black;
+            right: -20px;
+        }
+
+
+
+        .player .name {
+            line-height: 34px;
+        }
+
+        .result-box {
+            position: absolute;
+            top: 50%;
+            left: 0;
+            right: 0;
+            display: none;
+            -moz-transform: translateY(-50%);
+            -ms-transform: translateY(-50%);
+            -o-transform: translateY(-50%);
+            -webkit-transform: translateY(-50%);
+            transform: translateY(-50%);
+            transform-origin: center center;
+            background-color: rgba(0, 0, 0, 0.5);
+            color: white;
+            text-align: center;
+            padding: 20px;
+            font-size: 40px;
+            font-weight: bold;
+        }
+
+        .result-box.active {
+            display: block;
+            -moz-animation: result-box-show 0.5s ease;
+            -o-animation: result-box-show 0.5s ease;
+            -webkit-animation: result-box-show 0.5s ease;
+            animation: result-box-show 0.5s ease;
+        }
+
+        .result-box p {
+            margin: 10px;
+        }
+
+        .skip-box {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            -moz-animation: skip-box-show 0.3s cubic-bezier(.17, .67, .62, 1.32);
+            -o-animation: skip-box-show 0.3s cubic-bezier(.17, .67, .62, 1.32);
+            -webkit-animation: skip-box-show 0.3s cubic-bezier(.17, .67, .62, 1.32);
+            animation: skip-box-show 0.3s cubic-bezier(.17, .67, .62, 1.32);
+            border-radius: 100vw;
+            background-color: rgba(0, 0, 0, 0.5);
+            color: white;
+            font-weight: bold;
+            font-size: 20px;
+            text-align: center;
+            padding: 10px;
+            -moz-transform: translate(-50%, -50%);
+            -ms-transform: translate(-50%, -50%);
+            -o-transform: translate(-50%, -50%);
+            -webkit-transform: translate(-50%, -50%);
+            transform: translate(-50%, -50%);
+        }
+
+        @-webkit-keyframes skip-box-show {
+            from {
+                -moz-transform: translate(-50%, -50%) scale(0);
+                -ms-transform: translate(-50%, -50%) scale(0);
+                -o-transform: translate(-50%, -50%) scale(0);
+                -webkit-transform: translate(-50%, -50%) scale(0);
+                transform: translate(-50%, -50%) scale(0);
+            }
+
+            to {
+                -moz-transform: translate(-50%, -50%) scale(1);
+                -ms-transform: translate(-50%, -50%) scale(1);
+                -o-transform: translate(-50%, -50%) scale(1);
+                -webkit-transform: translate(-50%, -50%) scale(1);
+                transform: translate(-50%, -50%) scale(1);
+            }
+        }
+
+        @-moz-keyframes skip-box-show {
+            from {
+                -moz-transform: translate(-50%, -50%) scale(0);
+                -ms-transform: translate(-50%, -50%) scale(0);
+                -o-transform: translate(-50%, -50%) scale(0);
+                -webkit-transform: translate(-50%, -50%) scale(0);
+                transform: translate(-50%, -50%) scale(0);
+            }
+
+            to {
+                -moz-transform: translate(-50%, -50%) scale(1);
+                -ms-transform: translate(-50%, -50%) scale(1);
+                -o-transform: translate(-50%, -50%) scale(1);
+                -webkit-transform: translate(-50%, -50%) scale(1);
+                transform: translate(-50%, -50%) scale(1);
+            }
+        }
+
+        @keyframes skip-box-show {
+            from {
+                -moz-transform: translate(-50%, -50%) scale(0);
+                -ms-transform: translate(-50%, -50%) scale(0);
+                -o-transform: translate(-50%, -50%) scale(0);
+                -webkit-transform: translate(-50%, -50%) scale(0);
+                transform: translate(-50%, -50%) scale(0);
+            }
+
+            to {
+                -moz-transform: translate(-50%, -50%) scale(1);
+                -ms-transform: translate(-50%, -50%) scale(1);
+                -o-transform: translate(-50%, -50%) scale(1);
+                -webkit-transform: translate(-50%, -50%) scale(1);
+                transform: translate(-50%, -50%) scale(1);
+            }
+        }
+
+        @keyframes result-box-show {
+            from {
+                -moz-transform: translateY(-50%) scale(3);
+                -ms-transform: translateY(-50%) scale(3);
+                -o-transform: translateY(-50%) scale(3);
+                -webkit-transform: translateY(-50%) scale(3);
+                transform: translateY(-50%) scale(3);
+                opacity: 0;
+            }
+
+            to {
+                -moz-transform: translateY(-50%) scale(1);
+                -ms-transform: translateY(-50%) scale(1);
+                -o-transform: translateY(-50%) scale(1);
+                -webkit-transform: translateY(-50%) scale(1);
+                transform: translateY(-50%) scale(1);
+                opacity: 1;
+            }
+        }
+
+        @-moz-keyframes result-box-show {
+            from {
+                -moz-transform: translateY(-50%) scale(3);
+                -ms-transform: translateY(-50%) scale(3);
+                -o-transform: translateY(-50%) scale(3);
+                -webkit-transform: translateY(-50%) scale(3);
+                transform: translateY(-50%) scale(3);
+                opacity: 0;
+            }
+
+            to {
+                -moz-transform: translateY(-50%) scale(1);
+                -ms-transform: translateY(-50%) scale(1);
+                -o-transform: translateY(-50%) scale(1);
+                -webkit-transform: translateY(-50%) scale(1);
+                transform: translateY(-50%) scale(1);
+                opacity: 1;
+            }
+        }
+
+        @-webkit-keyframes result-box-show {
+            from {
+                -moz-transform: translateY(-50%) scale(3);
+                -ms-transform: translateY(-50%) scale(3);
+                -o-transform: translateY(-50%) scale(3);
+                -webkit-transform: translateY(-50%) scale(3);
+                transform: translateY(-50%) scale(3);
+                opacity: 0;
+            }
+
+            to {
+                -moz-transform: translateY(-50%) scale(1);
+                -ms-transform: translateY(-50%) scale(1);
+                -o-transform: translateY(-50%) scale(1);
+                -webkit-transform: translateY(-50%) scale(1);
+                transform: translateY(-50%) scale(1);
+                opacity: 1;
+            }
+        }
+        #giveup {
+      display: none;
+    }
+    </style>
+</head>
+<script src="Hex/js/jquery-3.6.0.min.js"></script>
+<!--<script src="https://cdn.bootcdn.net/ajax/libs/jquery/3.6.0/jquery.min.js"></script>-->
+<body>
+    <button id="giveup">换手</button>
+<script src="player_api.js"></script>
+<script>
+    GRIDSIZE = 11;
+    var CRED = 0, CBLUE = 1, CEMPTY = 2;
+    var isFirstMove = true;
+    var currColor = CRED;
+    var isPlayersTurn = false;
+    var $controls = {
+        gameField: null,
+        lblBlackName: null,
+        lblWhiteName: null,
+        result: null,
+        winner: null,
+        resultBox: null
+    }, $tiles = [];
+    $(document).ready(function () {
+        var ERR2Chinese = {
+            "INVALID_INPUT_VERDICT_RE": "程序崩溃",
+            "INVALID_INPUT_VERDICT_MLE": "程序内存爆炸",
+            "INVALID_INPUT_VERDICT_TLE": "决策超时",
+            "INVALID_INPUT_VERDICT_NJ": "程序输出不是JSON",
+            "INVALID_INPUT_VERDICT_OLE": "程序输出爆炸",
+            "INVALID_INPUT_VERDICT_OK": "程序输出格式错误",
+            "INVALIDMOVE": "非法棋步",
+            "HE_THOUGHT_THAT_HE_COULDNOT_MOVE_BUT_IN_FACT_HE_CAN": "错误跳过回合",
+            "CIRCULAR_MOVE": "试图复现第%errorturn%回合局面"
+        };
+        for (var id in $controls)
+            $controls[id] = $("#" + id);
+        for (var i = 0; i < GRIDSIZE; i++) {
+            $tiles[i] = [];
+        }
+        // (524-24*(11*2-1))/2 = 10 px
+        $controls.gameField.append("<p style='position: relative; width: 100%; height: 10px'></p>");
+        for (var i = 0; i < GRIDSIZE; i++) {
+            for (var j = 0; j <= i; j++) {
+                $controls.gameField.append(
+                    $tiles[i-j][j] = $('<img class="tile"/>').data("pos", { x: i-j, y: j })
+                );
+            }
+            $controls.gameField.append("<br>");
+        }
+        for (var i = GRIDSIZE-2; i >= 0; i--) {
+            for (var j = 0; j <= i; j++) {
+                $controls.gameField.append(
+                    $tiles[GRIDSIZE-1-j][GRIDSIZE-1-i+j]
+                        = $('<img class="tile"/>').data("pos", { x: GRIDSIZE-1-j, y: GRIDSIZE-1-i+j })
+                )
+            }
+            $controls.gameField.append("<br>");
+        }
+        $tiles[1][2].addClass("yellow");
+        // $tiles[0][8].addClass("blue");
+        // $tiles[0][9].addClass("red");
+
+        $(document).on("click", ".tile", function (e) {
+            var $this = $(this);
+            var pos = $this.data("pos");
+            console.log(pos.x + "," + pos.y);
+            if ($this.hasClass("red") || $this.hasClass("blue")) {
+                return;
+            }
+            if (isFirstMove) {
+                if (!(pos.x == 1 && pos.y == 2)) {
+                    alert("红方第一子规定落在三角形处(B3)");
+                    return;
+                }
+            }
+            if (isPlayersTurn) {
+                infoProvider.notifyPlayerMove({x : pos.x, y : pos.y});
+                isPlayersTurn = false;
+            }
+        });
+        infoProvider.v2.setMinSize(0, 600);
+        infoProvider.v2.setDisplayCallback(function (log) {
+            if (!log)
+                return;
+            var tl = new infoProvider.v2.TimelineMax();
+            if ("x" in log && "y" in log) {
+                var mx = log.x, my = log.y;
+                if (mx === -1 || my === -1) {
+                    return;
+                } else {
+                    isFirstMove = false;
+                }
+                var $mtile = $tiles[mx][my];
+                if ($mtile.hasClass("red") || $mtile.hasClass("blue")) {
+                    return;
+                }
+                if ($tiles[mx][my].hasClass("yellow")) {
+                    $tiles[mx][my].removeClass("yellow");
+                }
+                if (currColor === CRED) {
+                    tl.to($tiles[mx][my], 0.3, { immediateRender: false, className: "+=red" });
+                } else {
+                    tl.to($tiles[mx][my], 0.3, { immediateRender: false, className: "+=blue" });
+                }
+                currColor = 1 - currColor;
+                tl.addLabel("insertPoint", 1);
+            }
+            if ("winner" in log) {
+                if (log.err)
+                    $controls.result.text((ERR2Chinese[log.err] || log.err).replace(/%([^%]+)%/g, function (full, key) {
+                        return log[key];
+                    }));
+                else
+                    $controls.result.text("游戏结束");
+                if (log.winner === CRED)
+                    $controls.winner.text("红方胜利");
+                else if (log.winner === CBLUE)
+                    $controls.winner.text("蓝方胜利");
+                else
+                    $controls.winner.text("双方平局");
+                tl.set($controls.resultBox, { immediateRender: false, className: "+=active" });
+            };
+            return tl;
+        });
+
+        infoProvider.v2.setRequestCallback(function (log) {
+            isPlayersTurn = true;
+        });
+
+        var names = infoProvider.getPlayerNames();
+        $controls.lblBlackName.text(names[0].name);
+        $controls.lblWhiteName.text(names[1].name);
+
+        infoProvider.v2.notifyInitComplete();
+    });
+
+</script>
+<div class="player-container">
+    <figure class="player red">
+        <span class="name" id="lblBlackName"></span>
+    </figure>
+    <figure class="player blue">
+        <span class="name" id="lblWhiteName"></span>
+    </figure>
+</div>
+<section id="gameField"></section>
+<div class="result-box" id="resultBox">
+    <p id="result">游戏结束</p>
+    <p id="winner">双方平局</p>
+</div>
+</body>
+</html>
